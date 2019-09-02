@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using System;
 public class DebugFolder
 {
     public LogType type;
@@ -71,6 +71,9 @@ public class DebugTool : MonoBehaviour
         PlayerPrefs.SetInt("DebugTool" + "showWarning", showWarning ? 1 : 0);
         PlayerPrefs.SetInt("DebugTool" + "showError", showError ? 1 : 0);
     }
+    private void Start()
+    {
+    }
     public void OnEnable()
     {
         Init();
@@ -84,6 +87,53 @@ public class DebugTool : MonoBehaviour
         debugInfo = null;
         if (fpsCountCor != null) StopCoroutine(fpsCountCor);
         Save();
+    }
+    public bool BeLike(string a, string b, float rate = 0.8f)
+    {
+        var maxDistance =Mathf.Max(3 ,Math.Min(a.Length,b.Length)*rate);
+        if (Distance(a, b) > maxDistance)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    public static int Distance(string a,string b)
+    {
+        var x = 0;
+        var y = 0;
+        var aList = new List<char>();
+        var bList = new List<char>();
+        aList.AddRange(a);
+        bList.AddRange(b);
+        aList.Sort();
+        bList.Sort();
+        var count = 0;
+        while (x < aList.Count&&y< bList.Count)
+        {
+
+            if (a[x] == b[y])
+            {
+                x++;
+                y++;
+                count++;
+            }
+            else
+            {
+                var d = a[x] - b[y];
+                if (d > 0)
+                {
+                    y++;
+                }
+                else
+                {
+                    x++;
+                }
+            }    
+        }
+        return Mathf.Max(a.Length,b.Length)-count;
     }
     IEnumerator FpsCount()
     {
@@ -147,10 +197,29 @@ public class DebugTool : MonoBehaviour
             default:
                 break;
         }
-        if (debugInfo.ContainsKey(stackTrace))
+      
+        if (string.IsNullOrEmpty(stackTrace)){
+            var initKey = false;
+            foreach (var kv in debugInfo)
+            {
+                if (BeLike(condition, kv.Key)&&kv.Value.type==type)
+                {
+                    stackTrace = kv.Value.stackTrace;
+                    initKey = true;
+                    break;
+                }
+            }
+            if (!initKey)
+            {
+                stackTrace = condition;
+            }
+        }
+        var key =stackTrace+type;
+        if (debugInfo.ContainsKey(key))
         {
-            var folder = debugInfo[stackTrace];
+            var folder = debugInfo[key];
             folder.count++;
+            
             if (folder.info.ContainsKey(condition))
             {
                 folder.info[condition].count++;
@@ -179,11 +248,11 @@ public class DebugTool : MonoBehaviour
             };
             folder.info.Add(condition, new DebugInfo()
             {
-                condition = condition,
+                condition = condition ,
                 count = 1,
                 time = System.DateTime.Now,
             });
-            debugInfo.Add(stackTrace,folder);
+            debugInfo.Add(key, folder);
             folder.lastCondition = condition;
         }
     }
@@ -292,11 +361,11 @@ public class DebugTool : MonoBehaviour
             GUILayout.Space(45);
             scrollPos = GUILayout.BeginScrollView(scrollPos, false, true, GUILayout.Width(Screen.width));
             
-            foreach (var strack in debugInfo.Keys)
+            foreach (var key in debugInfo.Keys)
             {
 
                 Texture2D typeIcon = null;
-                switch (debugInfo[strack].type)
+                switch (debugInfo[key].type)
                 {
                     case LogType.Error:
                         if (!showError) continue;
@@ -317,25 +386,25 @@ public class DebugTool : MonoBehaviour
                     default:
                         break;
                 }
-                var info = debugInfo[strack].LastInfo;
+                var info = debugInfo[key].LastInfo;
                 var infoStr = info.condition + "\n " + info.time + "\n【" + info.count + "】";
-                debugInfo[strack].showDetails = GUILayout.Toggle( debugInfo[strack].showDetails,
-                    new GUIContent("【"+ debugInfo[strack] .count+ "】"+info.time.ToString("[ HH:mm:ss:ffff ]") 
+                debugInfo[key].showDetails = GUILayout.Toggle( debugInfo[key].showDetails,
+                    new GUIContent("【"+ debugInfo[key] .count+ "】"+info.time.ToString("[ HH:mm:ss:ffff ]") 
                      +"  "+ info.condition, typeIcon
                     ),GUI.skin.button);
-                if (debugInfo[strack].showDetails)
+                if (debugInfo[key].showDetails)
                 {
-                    debugInfo[strack].scroll=GUILayout.BeginScrollView(
-                        debugInfo[strack].scroll,
-                        GUILayout.MinHeight(Mathf.Min(debugInfo[strack].info.Count*30,150)));
+                    debugInfo[key].scroll=GUILayout.BeginScrollView(
+                        debugInfo[key].scroll,
+                        GUILayout.MinHeight(Mathf.Min(debugInfo[key].info.Count*30,150)));
                     //var down = (debugInfo[strack].scroll.y >= 30 * (debugInfo[strack].count-3));
-                    if (debugInfo[strack].scroll.y >= 30 *(debugInfo[strack].info.Count-6))
+                    if (debugInfo[key].scroll.y >= 30 *(debugInfo[key].info.Count-6))
                     {
-                        debugInfo[strack].scroll.y = 30 *Mathf.Max(0, (debugInfo[strack].info.Count-5));
+                        debugInfo[key].scroll.y = 30 *Mathf.Max(0, (debugInfo[key].info.Count-5));
 
                     }
                     int count=0;
-                    foreach (var kv in debugInfo[strack].info)
+                    foreach (var kv in debugInfo[key].info)
                     {   
                         info = kv.Value;
                     
@@ -362,7 +431,7 @@ public class DebugTool : MonoBehaviour
                     }
 
                     GUILayout.EndScrollView();
-                    GUILayout.Box(strack.Trim());
+                    GUILayout.Box(debugInfo[key].stackTrace.Trim());
                 }
                 GUILayout.Space(5);
             }
