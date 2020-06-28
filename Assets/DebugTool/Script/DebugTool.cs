@@ -185,6 +185,7 @@ public class DebugTool : MonoBehaviour
                 errorCount++;
                 break;
             case LogType.Assert:
+                errorCount++;
                 break;
             case LogType.Warning:
                 warningCount++;
@@ -193,6 +194,7 @@ public class DebugTool : MonoBehaviour
                 logCount++;
                 break;
             case LogType.Exception:
+                errorCount++;
                 break;
             default:
                 break;
@@ -372,6 +374,8 @@ public class DebugTool : MonoBehaviour
                         typeIcon = GUI.skin.GetStyle("SmallError").normal.background;
                         break;
                     case LogType.Assert:
+                        if (!showError) continue;
+                        typeIcon = GUI.skin.GetStyle("SmallError").normal.background;
                         break;
                     case LogType.Warning:
                         if (!showWarning) continue;
@@ -382,6 +386,8 @@ public class DebugTool : MonoBehaviour
                         typeIcon = GUI.skin.GetStyle("SmallLog").normal.background;
                         break;
                     case LogType.Exception:
+                        if (!showError) continue;
+                        typeIcon = GUI.skin.GetStyle("SmallError").normal.background;
                         break;
                     default:
                         break;
